@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Luxury Properties</title>
+  <style>
+    .luxury-container {
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 40px auto;
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s ease;
+    }
+    
+    .luxury-text {
+    text-align: center;
+    margin-bottom: 30px;
+    }
+    
+    .luxury-text h2 {
+    font-size: 32px;
+    margin-bottom: 15px;
+    color: #111;
+    }
+    
+    .luxury-text p {
+    font-size: 18px;
+    color: #444;
+    }
+    
+    .luxury-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    justify-items: center;
+    }
+    
+    .luxury-item {
+    width: 100%;
+    max-width: 250px;
+    text-align: center;
+    background: #fff;
+    padding: 10px;
+    border-radius: 15px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    }
+    
+    .luxury-item:hover {
+    transform: scale(1.03);
+    }
+    
+    .luxury-item img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    margin-bottom: 8px;
+    }
+    
+    .luxury-item p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+    }
+    
+    /* Ensure 2x2 layout on all screen sizes */
+    @media screen and (max-width: 768px) {
+    .luxury-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    }
+    }
+    </style>
+</head>
+<body>
+
+ 
+
+  <div class="luxury-container">
+    <div class="luxury-text">
+      <h2>Discover Luxury Properties</h2>
+      <p>Explore high-end properties with sleek designs, lavish interiors, and stunning views.</p>
+    </div>
+    <div class="luxury-gallery" id="luxuryGallery">
+      <div class="luxury-item"><img src="" alt="Luxury Property"></div>
+      <div class="luxury-item"><img src="" alt="Luxury Property"></div>
+      <div class="luxury-item"><img src="" alt="Luxury Property"></div>
+      <div class="luxury-item"><img src="" alt="Luxury Property"></div>
+    </div>
+  </div>
+
+ <script>
+ const galleryItems = document.querySelectorAll('.luxury-item img');
+ let imagesPool = [];
+ let timers = [];
+ 
+ function preloadImage(url) {
+ return new Promise((resolve, reject) => {
+ const img = new Image();
+ img.src = url;
+ img.onload = () => resolve(url);
+ img.onerror = () => reject(url);
+ });
+ }
+ 
+ async function updateImage(index) {
+ if (!imagesPool.length) return;
+ 
+ const img = galleryItems[index];
+ let image = imagesPool[Math.floor(Math.random() * imagesPool.length)];
+ 
+ try {
+ await preloadImage(image.image);
+ img.src = image.image;
+ img.alt = image.title;
+ } catch {
+ // fallback to placeholder
+ const fallback = fallbackImages[index % fallbackImages.length];
+ img.src = fallback.image;
+ img.alt = fallback.title;
+ }
+ }
+ 
+ function startImageRotation() {
+ galleryItems.forEach((_, i) => {
+ clearInterval(timers[i]);
+ updateImage(i); // Initial
+ timers[i] = setInterval(() => updateImage(i), 60000); // Every 60s
+ });
+ }
+ 
+ const fallbackImages = [
+ { image: 'https://source.unsplash.com/featured/?luxury-home', title: 'Luxury Home' },
+ { image: 'https://source.unsplash.com/featured/?luxury-villa', title: 'Luxury Villa' },
+ { image: 'https://source.unsplash.com/featured/?luxury-interior', title: 'Luxury Interior' },
+ { image: 'https://source.unsplash.com/featured/?modern-mansion', title: 'Modern Mansion' }
+ ];
+ 
+ async function fetchLuxuryImages() {
+ try {
+ const res = await fetch('/.netlify/functions/fetchLuxury');
+ const data = await res.json();
+ 
+ if (!data.results || data.results.length < 4) throw new Error("Insufficient image results");
+ 
+ imagesPool = data.results;
+ 
+ // Preload first 4 before starting
+ const preloadPromises = galleryItems.map((_, i) => preloadImage(imagesPool[i % imagesPool.length].image));
+ await Promise.allSettled(preloadPromises);
+ 
+ startImageRotation();
+ } catch (err) {
+ console.error('Image fetch or preload error:', err);
+ imagesPool = fallbackImages;
+ startImageRotation();
+ }
+ }
+ 
+ fetchLuxuryImages();
+ setInterval(fetchLuxuryImages, 300000); // Refresh every 5 minutes
+ </script>
+</body>
+</html>
+
